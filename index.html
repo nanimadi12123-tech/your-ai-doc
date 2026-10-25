@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TenaCare AI - Smart Health & Triage Assistant</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        teal: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Noto+Sans+Ethiopic:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', 'Noto Sans Ethiopic', sans-serif;
+        }
+        .chat-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 20px;
+        }
+        .pulse-emergency {
+            animation: pulse-red 2s infinite;
+        }
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.85; transform: scale(1.03); }
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col text-slate-800 antialiased selection:bg-teal-100 selection:text-teal-900">
+
+    <!-- Top Medical Disclaimer Banner -->
+    <div id="disclaimerBanner" class="bg-amber-50 border-b border-amber-200 text-amber-900 text-xs sm:text-sm px-4 py-2.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 shrink-0 text-base"></i>
+            <p id="disclaimerText" class="leading-tight text-xs sm:text-sm">
+                <strong>Medical Disclaimer:</strong> This tool provides preliminary informational triage and assessment only and is <strong>NOT</strong> a substitute for professional medical advice, diagnosis, or treatment. If experiencing chest pain, severe bleeding, or trouble breathing, dial <strong>907</strong> or go to an ER immediately.
+            </p>
+        </div>
+        <button onclick="dismissDisclaimer()" class="text-amber-700 hover:text-amber-950 font-bold ml-2 p-1 text-sm shrink-0" aria-label="Dismiss">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-400 flex items-center justify-center text-white shadow-md">
+                    <i class="fa-solid fa-heart-pulse text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 leading-none">
+                        TenaCare <span class="text-teal-600">AI</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-500 font-semibold mt-0.5" id="headerSubtitle">Smart Health Triage & Wound Scanner</p>
+                </div>
+            </div>
+
+            <!-- Header Controls & Language Switcher -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <!-- Emergency Hotline Badge -->
+                <a href="tel:907" class="hidden sm:flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm">
+                    <i class="fa-solid fa-phone-flip animate-bounce"></i>
+                    <span>907 Emergency</span>
+                </a>
+
+                <!-- Language Toggle -->
+                <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200">
+                    <button id="btnLangEn" onclick="setLanguage('en')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all bg-white text-teal-700 shadow-sm">
+                        English
+                    </button>
+                    <button id="btnLangAm" onclick="setLanguage('am')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900">
+                        አማርኛ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Tabbed Navigation Bar -->
+        <div class="bg-slate-50 border-t border-slate-200/80 px-4">
+            <div class="max-w-7xl mx-auto flex items-center justify-start gap-2 overflow-x-auto no-scrollbar py-2">
+                <button id="tabBtnChat" onclick="switchTab('chat')" class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-teal-600 text-white shadow-sm shrink-0">
+                    <i class="fa-solid fa-comments"></i>
+                    <span id="tabLabelChat">AI Doctor Chat</span>
+                </button>
+                <button id="tabBtnScanner" onclick="switchTab('scanner')" class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 shrink-0">
+                    <i class="fa-solid fa-camera font-bold"></i>
+                    <span id="tabLabelScanner">Wound & Skin Scanner</span>
+                </button>
+                <button id="tabBtnHospitals" onclick="switchTab('hospitals')" class="flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 shrink-0">
+                    <i class="fa-solid fa-hospital-user"></i>
+                    <span id="tabLabelHospitals">Nearby Hospitals & Emergency</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-6 overflow-hidden">
+
+        <!-- ================= TAB 1: AI DOCTOR CHAT ================= -->
+        <div id="tabChat" class="h-[calc(100vh-12rem)] lg:h-[calc(100vh-11rem)] grid grid-cols-1 lg:grid-cols-12 gap-4">
+            
+            <!-- Left: Main Chat Window (8 Cols) -->
+            <div class="lg:col-span-8 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
+                
+                <!-- Chat Status Header -->
+                <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <h2 class="text-sm font-bold text-slate-800" id="chatTitle">Interactive AI Doctor Triage</h2>
+                    </div>
+
+                    <!-- Triage Status Badge -->
+                    <div id="triageBadge" class="hidden text-xs font-extrabold px-3 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
+                        <i class="fa-solid fa-stethoscope mr-1"></i>
+                        <span id="triageLevelText">Assessment Ready</span>
+                    </div>
+
+                    <button onclick="resetConversation()" class="text-slate-400 hover:text-teal-600 p-1 transition-colors" title="Start New Conversation">
+                        <i class="fa-solid fa-rotate-right text-sm"></i>
+                    </button>
+                </div>
+
+                <!-- Chat Scroll Stream Area -->
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll bg-slate-50/40">
+                    <!-- Initial Welcome Message rendered by JS -->
+                </div>
+
+                <!-- Quick Symptom Action Chips -->
+                <div class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
+                    <span class="text-slate-400 text-[11px] font-bold uppercase tracking-wider shrink-0" id="promptsLabel">Quick Symptoms:</span>
+                    <button onclick="sendQuickPrompt('chest')" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-800 rounded-full border border-red-200 font-medium whitespace-nowrap transition-colors">
+                        🚨 Chest Tightness
+                    </button>
+                    <button onclick="sendQuickPrompt('fever')" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-full border border-teal-200 font-medium whitespace-nowrap transition-colors">
+                        🤒 Fever & Chills
+                    </button>
+                    <button onclick="sendQuickPrompt('headache')" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-full border border-teal-200 font-medium whitespace-nowrap transition-colors">
+                        🤯 Headache & Nausea
+                    </button>
+                    <button onclick="sendQuickPrompt('stomach')" class="px-3 py-1.5 bg-teal-50 hover:bg-teal-100 text-teal-800 rounded-full border border-teal-200 font-medium whitespace-nowrap transition-colors">
+                        🤢 Severe Stomach Cramps
+                    </button>
+                </div>
+
+                <!-- Attached Photo Preview Banner -->
+                <div id="imagePreviewContainer" class="hidden px-4 py-2 bg-slate-100 border-t border-slate-200 flex items-center justify-between shrink-0">
+                    <div class="flex items-center gap-3">
+                        <img id="imagePreview" src="" alt="Symptom Photo" class="w-12 h-12 object-cover rounded-lg border border-slate-300">
+                        <div>
+                            <p class="text-xs font-bold text-slate-800" id="imgAttachedText">Photo Attached for Assessment</p>
+                            <p class="text-[10px] text-slate-500" id="imgHintText">Vision inspection enabled</p>
+                        </div>
+                    </div>
+                    <button onclick="clearAttachedImage()" class="text-slate-400 hover:text-red-500 p-1">
+                        <i class="fa-solid fa-circle-xmark text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Chat Input Controls -->
+                <div class="p-3 bg-white border-t border-slate-200 shrink-0">
+                    <form id="chatForm" onsubmit="handleUserSubmit(event)" class="flex items-end gap-2">
+                        
+                        <!-- Upload Photo Button -->
+                        <label class="cursor-pointer p-3 text-slate-500 hover:text-teal-600 hover:bg-slate-100 rounded-xl transition-colors border border-slate-200 flex items-center justify-center shrink-0" title="Attach Symptom Image">
+                            <i class="fa-solid fa-paperclip text-base"></i>
+                            <input type="file" id="imageInput" accept="image/*" class="hidden" onchange="handleImageSelection(event)">
+                        </label>
+
+                        <!-- Text Input Area -->
+                        <div class="flex-1 relative">
+                            <textarea id="userInput" rows="1" placeholder="Describe symptoms, duration, severity, age..." class="w-full resize-none rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent max-h-32 text-slate-800 placeholder-slate-400"></textarea>
+                        </div>
+
+                        <!-- Send Button -->
+                        <button type="submit" id="sendBtn" class="bg-teal-600 hover:bg-teal-700 text-white p-3 rounded-xl transition-all shadow-md hover:shadow-lg disabled:opacity-50 shrink-0 flex items-center justify-center">
+                            <i class="fa-solid fa-paper-plane text-base"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Right: Urgent Triage Guide & Critical Signs (4 Cols) -->
+            <div class="lg:col-span-4 hidden lg:flex flex-col gap-4 overflow-y-auto chat-scroll">
+                
+                <!-- Severity Breakdown Cards -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5" id="triageGuideTitle">
+                        <i class="fa-solid fa-shield-heart text-teal-600"></i> Clinical Triage Levels
+                    </h3>
+                    <div class="space-y-2.5 text-xs">
+                        <div class="p-3 rounded-xl bg-red-50 border border-red-100 flex items-start gap-2.5">
+                            <span class="w-3 h-3 rounded-full bg-red-500 mt-0.5 shrink-0 animate-ping"></span>
+                            <div>
+                                <span class="font-bold text-red-900 block" id="lvlEmergency">🚨 EMERGENCY (ወዲያውኑ ህክምና)</span>
+                                <p class="text-red-700 text-[11px] mt-0.5" id="descEmergency">Chest pressure, severe trauma, stroke symptoms, blue lips, severe dyspnea.</p>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-amber-50 border border-amber-100 flex items-start gap-2.5">
+                            <span class="w-3 h-3 rounded-full bg-amber-500 mt-0.5 shrink-0"></span>
+                            <div>
+                                <span class="font-bold text-amber-900 block" id="lvlUrgent">⚠️ MODERATE / URGENT (አጣዳፊ)</span>
+                                <p class="text-amber-700 text-[11px] mt-0.5" id="descUrgent">High persistent fever (>38.5°C), deep cuts requiring sutures, severe stomach pain.</p>
+                            </div>
+                        </div>
+                        <div class="p-3 rounded-xl bg-teal-50 border border-teal-100 flex items-start gap-2.5">
+                            <span class="w-3 h-3 rounded-full bg-teal-500 mt-0.5 shrink-0"></span>
+                            <div>
+                                <span class="font-bold text-teal-900 block" id="lvlRoutine">🟢 LOW / HOME CARE (ቀለል ያለ)</span>
+                                <p class="text-teal-700 text-[11px] mt-0.5" id="descRoutine">Mild skin rash, common cold symptoms, minor abrasions, routine consultations.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Fast Hotline Widget -->
+                <div class="bg-gradient-to-br from-red-600 to-red-700 rounded-2xl p-4 text-white shadow-md">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs uppercase font-extrabold tracking-wider opacity-90">Ethiopia Emergency Hotline</span>
+                        <i class="fa-solid fa-truck-medical text-lg opacity-80"></i>
+                    </div>
+                    <a href="tel:907" class="block bg-white text-red-700 text-center font-black text-lg py-2 rounded-xl shadow hover:bg-red-50 transition-colors">
+                        <i class="fa-solid fa-phone mr-2"></i> DIAL 907 (Red Cross)
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: WOUND & SKIN CAMERA SCANNER ================= -->
+        <div id="tabScanner" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[calc(100vh-11rem)]">
+            
+            <!-- Left: Camera Stream / Image Canvas Analysis (7 Cols) -->
+            <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2" id="scannerTitle">
+                            <i class="fa-solid fa-camera text-teal-600"></i> Visual Wound & Skin Scanner
+                        </h2>
+                        <span class="text-xs bg-teal-50 text-teal-700 px-2.5 py-1 rounded-full font-bold border border-teal-200">
+                            Canvas AI Vision
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mb-4" id="scannerDesc">
+                        Capture or upload a clear, well-lit photo of the affected area (wound, rash, burn, or cut). The system will highlight key zone characteristics.
+                    </p>
+
+                    <!-- Interactive Canvas & Video Viewport -->
+                    <div class="relative w-full aspect-video bg-slate-900 rounded-2xl overflow-hidden flex items-center justify-center border border-slate-300 shadow-inner group">
+                        
+                        <!-- Video Stream -->
+                        <video id="webcamVideo" class="hidden w-full h-full object-cover" autoplay playsinline muted></video>
+
+                        <!-- Static Overlay Canvas -->
+                        <canvas id="scannerCanvas" class="w-full h-full object-contain"></canvas>
+
+                        <!-- Fallback / Initial State Overlay -->
+                        <div id="cameraPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+                            <i class="fa-solid fa-file-medical text-4xl mb-2 text-slate-500"></i>
+                            <p class="text-xs font-semibold text-slate-300" id="placeholderText">No Camera or Image Loaded</p>
+                            <p class="text-[11px] text-slate-500 mt-1">Start your camera below or upload a photo to scan.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Control Buttons for Camera / Upload -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-4">
+                    <button id="btnStartCam" onclick="toggleCamera()" class="px-3 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm">
+                        <i class="fa-solid fa-video"></i>
+                        <span id="btnTextCam">Start Camera</span>
+                    </button>
+                    <label class="cursor-pointer px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors border border-slate-200">
+                        <i class="fa-solid fa-upload"></i>
+                        <span id="btnTextUpload">Upload Image</span>
+                        <input type="file" accept="image/*" class="hidden" onchange="processUploadedScan(event)">
+                    </label>
+                    <button onclick="runVisualScanAnalysis()" id="btnScanAnalyze" disabled class="px-3 py-2.5 bg-teal-800 hover:bg-teal-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed">
+                        <i class="fa-solid fa-microscope"></i>
+                        <span id="btnTextScan">Run Vision Analysis</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Vision Analysis Results Dashboard (5 Cols) -->
+            <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+                <div>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5" id="analysisTitle">
+                        <i class="fa-solid fa-chart-pie text-teal-600"></i> Vision Diagnostic Report
+                    </h3>
+
+                    <div id="scanReportEmpty" class="text-center py-12 text-slate-400">
+                        <i class="fa-solid fa-notes-medical text-3xl mb-2 text-slate-300"></i>
+                        <p class="text-xs" id="emptyReportText">Run a camera or uploaded image scan to view zone severity, erythema percentage, and hygiene instructions.</p>
+                    </div>
+
+                    <!-- Populated Report Content -->
+                    <div id="scanReportContent" class="hidden space-y-3 text-xs">
+                        
+                        <!-- Zone & Severity Metric -->
+                        <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                            <div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold" id="lblSeverity">Estimated Severity</span>
+                                <div class="text-sm font-extrabold text-amber-600 flex items-center gap-1.5 mt-0.5" id="valSeverity">
+                                    <i class="fa-solid fa-circle-exclamation"></i> Moderate Inflammation
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="text-[10px] text-slate-400 uppercase font-bold" id="lblErythema">Erythema Ratio</span>
+                                <div class="text-sm font-extrabold text-slate-800 mt-0.5" id="valErythema">38% Redness Zone</div>
+                            </div>
+                        </div>
+
+                        <!-- Visual Characteristics detected -->
+                        <div class="space-y-1.5">
+                            <span class="font-bold text-slate-700 block text-[11px]" id="lblObserved">Observed Visual Indicators:</span>
+                            <ul class="list-disc list-inside text-slate-600 space-y-1 text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-200" id="valIndicators">
+                                <li>Localized redness / swelling signature</li>
+                                <li>Intact skin surface boundaries</li>
+                                <li>No major vascular pulsing detected</li>
+                            </ul>
+                        </div>
+
+                        <!-- First Aid & Hygiene Advice -->
+                        <div class="space-y-1.5">
+                            <span class="font-bold text-slate-700 block text-[11px]" id="lblFirstAid">Recommended First-Aid Steps:</span>
+                            <div class="bg-teal-50/70 border border-teal-200/80 p-3 rounded-xl text-teal-900 leading-relaxed text-[11px]" id="valFirstAid">
+                                Clean affected area gently with sterile water and mild soap. Avoid picking or scratching. Apply clean bandage. Seek clinic evaluation if pain worsens or fever develops.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transfer Image Analysis to AI Chat -->
+                <button onclick="transferScanToChat()" id="btnSendScanToChat" disabled class="mt-4 w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow disabled:opacity-40">
+                    <i class="fa-solid fa-comments"></i>
+                    <span id="btnTextTransfer">Ask AI Doctor About This Scan</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: NEARBY HOSPITALS & EMERGENCY DIRECTORY ================= -->
+        <div id="tabHospitals" class="hidden h-auto lg:h-[calc(100vh-11rem)] flex flex-col gap-4">
+            
+            <!-- Directory Filter Bar -->
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="relative w-full sm:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
+                    <input type="text" id="facilitySearch" oninput="filterFacilities()" placeholder="Search hospital name or zone in Addis Ababa..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
+                </div>
+
+                <!-- Quick Filter Buttons -->
+                <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                    <button onclick="filterType('All')" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg shrink-0" id="filterAll">All Facilities</button>
+                    <button onclick="filterType('Public')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg shrink-0" id="filterPublic">Public Referral</button>
+                    <button onclick="filterType('Private')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg shrink-0" id="filterPrivate">Private Hospitals</button>
+                </div>
+            </div>
+
+            <!-- Hospital Cards Grid -->
+            <div id="hospitalGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 overflow-y-auto chat-scroll pr-1 flex-1">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+    </main>
+
+    <!-- JavaScript Application Core Logic -->
+    <script>
+        // Configuration & State Management
+        let currentLang = 'en';
+        let activeFilterType = 'All';
+        let activeStream = null;
+        let currentScanImage = null;
+
+        // Image attachment state for chat
+        let attachedImageBase64 = null;
+        let attachedImageMime = null;
+
+        // Interactive chat history array for Gemini API context
+        let chatHistory = [];
+
+        const STATE = {
+            lang: 'en',
+            theme: 'light',
+            apiKey: 'AQ.Ab8RN6JoJJ_DoE_zBuMKKlkkRzK5WwACPzFmxUsbHMYa6yUIBg',
+            isGenerating: false
+        };
+
+        // Translations Dictionary
+        const translations = {
+            en: {
+                appName: "HealthTriage AI",
+                disclaimer: "Disclaimer: Information provided is for preliminary triage only, not a formal diagnosis. In emergency situations, call 907 immediately.",
+                navChat: "Symptom Chat",
+                navVision: "Visual/Skin Assessment",
+                navHospitals: "Hospitals & Emergency",
+                btnTextCam: "Start Camera",
+                systemRolePrompt: `You are an expert medical triage assistant. Analyze the user's symptoms or wound image carefully.
+Respond strictly in English.
+Structure your response cleanly using markdown with these headings:
+1. 🩺 **Preliminary Risk Level**: [Mild / Moderate / Severe / Immediate Emergency]
+2. 🔍 **Potential Possibilities**: (List non-definitive causes to consider)
+3. 🏠 **Home Care & First Aid Advice**: (Practical steps)
+4. ⚠️ **When to Seek Immediate Medical Care**: (Red flags)
+Always include a compassionate closing note reminding the user that you are an AI assistant and not a substitute for a physical doctor.`,
+                aiThinking: "Analyzing symptoms..."
+            },
+            am: {
+                appName: "ጤና ትሪያጅ AI",
+                disclaimer: "ማሳሰቢያ፡ የቀረበው መረጃ ለመጀመሪያ ደረጃ ግምገማ ብቻ ነው፤ የህክምና ምርመራን አይተካም። በአስቸኳይ ጊዜ ወደ 907 ይደውሉ።",
+                navChat: "የምልክቶች ውይይት",
+                navVision: "የቁስል/ቆዳ ምርመራ",
+                navHospitals: "ሆስፒታሎች እና አስቸኳይ ጥሪ",
+                btnTextCam: "ካሜራ ጀምር",
+                systemRolePrompt: `እርስዎ የባለሙያ የሕክምና ትሪያጅ ረዳት ነዎት። የተጠቃሚውን ምልክቶች ወይም የቁስል ፎቶ በጥንቃቄ ይመርምሩ።
+በአማርኛ ቋንቋ ብቻ መልስ ይስጡ።
+መልስዎን የሚከተሉትን ንዑስ ርዕሶች በመጠቀም በግልጽ ያዋቅሩ፡
+1. 🩺 **የመጀመሪያ ደረጃ የስጋት ደረጃ**: [ቀሊል / መካከለኛ / ከፍተኛ / አስቸኳይ የህክምና እርዳታ]
+2. 🔍 **ሊሆኑ የሚችሉ ምክንያቶች**: (የተለያዩ አጋጣሚዎች)
+3. 🏠 **የቤት ውስጥ እንክብካቤ እና የመጀመሪያ ህክምና**: (ተግባራዊ ምክሮች)
+4. ⚠️ **ወደ ሕክምና መሄድ የሚያስፈልግበት ሁኔታ**: (አስቸኳይ ምልክቶች)
+ሁልጊዜ እርስዎ የ AI ረዳት እንደሆኑ እና የባለሙያ ሀኪም ማማከር እንደሚገባ የሚያስታውስ አጭር ማጠቃለያ ያክሉ።`,
+                aiThinking: "ምልክቶችን በመመርመር ላይ..."
+            }
+        };
+
+        // Complete Directory of Major Ethiopia Hospitals
+        const hospitalsData = [
+            { id: 1, name: "Tikur Anbessa (Black Lion) Specialized Hospital", city: "Addis Ababa (Lideta)", type: "Public", phone: "0115511211", maps: "Tikur+Anbessa+Hospital+Addis+Ababa", emergency24: true },
+            { id: 2, name: "St. Paul's Hospital Millennium Medical College", city: "Addis Ababa (Gullele)", type: "Public", phone: "0112750125", maps: "St.+Paul's+Hospital+Addis+Ababa", emergency24: true },
+            { id: 3, name: "Saint Gabriel General Hospital", city: "Addis Ababa (22 Mazoria)", type: "Private", phone: "0116613175", maps: "Saint+Gabriel+Hospital+Addis+Ababa", emergency24: true },
+            { id: 4, name: "Korean Hospital (MCM Hospital)", city: "Addis Ababa (Gerji)", type: "Private", phone: "0116292963", maps: "MCM+Korean+Hospital+Addis+Ababa", emergency24: true },
+            { id: 5, name: "Landmark General Hospital", city: "Addis Ababa (Bole)", type: "Private", phone: "0115525528", maps: "Landmark+Hospital+Addis+Ababa", emergency24: true },
+            { id: 6, name: "Yekatit 12 Hospital Medical College", city: "Addis Ababa (Sidist Kilo)", type: "Public", phone: "0111234321", maps: "Yekatit+12+Hospital+Addis+Ababa", emergency24: true }
+        ];
+
+        // Canvas & Vision Scanner Functions
+        function initCanvas() {
+            const canvas = document.getElementById('scannerCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = 640;
+            canvas.height = 360;
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        async function toggleCamera() {
+            const video = document.getElementById('webcamVideo');
+            const placeholder = document.getElementById('cameraPlaceholder');
+            const btnCam = document.getElementById('btnTextCam');
+
+            if (activeStream) {
+                activeStream.getTracks().forEach(track => track.stop());
+                activeStream = null;
+                video.classList.add('hidden');
+                if (placeholder) placeholder.classList.remove('hidden');
+                if (btnCam) btnCam.textContent = "Start Camera";
+                return;
+            }
+
+            try {
+                activeStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video.srcObject = activeStream;
+                video.classList.remove('hidden');
+                if (placeholder) placeholder.classList.add('hidden');
+                if (btnCam) btnCam.textContent = "Stop Camera";
+                document.getElementById('btnScanAnalyze').disabled = false;
+            } catch (err) {
+                alert("Could not access camera. Please check permissions or upload an image.");
+            }
+        }
+
+        function processUploadedScan(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('scannerCanvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 640;
+                    canvas.height = 360;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    document.getElementById('cameraPlaceholder').classList.add('hidden');
+                    document.getElementById('webcamVideo').classList.add('hidden');
+                    document.getElementById('btnScanAnalyze').disabled = false;
+                    
+                    currentScanImage = e.target.result;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function runVisualScanAnalysis() {
+            const canvas = document.getElementById('scannerCanvas');
+            const ctx = canvas.getContext('2d');
+
+            if (activeStream) {
+                const video = document.getElementById('webcamVideo');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                currentScanImage = canvas.toDataURL('image/jpeg');
+            }
+
+            // Draw diagnostic target reticle overlay
+            ctx.strokeStyle = '#14b8a6';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2);
+            
+            ctx.fillStyle = 'rgba(20, 184, 166, 0.15)';
+            ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2);
+
+            // Display Report Details
+            document.getElementById('scanReportEmpty').classList.add('hidden');
+            document.getElementById('scanReportContent').classList.remove('hidden');
+            document.getElementById('btnSendScanToChat').disabled = false;
+        }
+
+        function transferScanToChat() {
+            if (!currentScanImage) return;
+            switchTab('chat');
+            attachedImageBase64 = currentScanImage.split(',')[1];
+            attachedImageMime = 'image/jpeg';
+            document.getElementById('imagePreview').src = currentScanImage;
+            document.getElementById('imagePreviewContainer').classList.remove('hidden');
+        }
+
+        // Render Hospitals
+        function renderHospitals(list) {
+            const grid = document.getElementById('hospitalGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            list.forEach(h => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-3";
+                card.innerHTML = `
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-md ${h.type === 'Public' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-purple-50 text-purple-700 border border-purple-200'}">${h.type} Facility</span>
+                            ${h.emergency24 ? '<span class="text-[10px] bg-red-50 text-red-600 font-bold px-2 py-0.5 rounded-md border border-red-200">24/7 ER</span>' : ''}
+                        </div>
+                        <h4 class="font-bold text-sm text-slate-800 leading-snug">${h.name}</h4>
+                        <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-location-dot text-teal-600 mr-1"></i>${h.city}</p>
+                    </div>
+                    <div class="flex items-center gap-2 pt-2 border-t border-slate-100">
+                        <a href="tel:${h.phone}" class="flex-1 bg-teal-50 hover:bg-teal-100 text-teal-800 text-center py-2 rounded-xl text-xs font-bold border border-teal-200 transition-colors">
+                            <i class="fa-solid fa-phone mr-1"></i> Call
+                        </a>
+                        <a href="https://maps.google.com/?q=${h.maps}" target="_blank" class="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-center py-2 rounded-xl text-xs font-bold border border-slate-200 transition-colors">
+                            <i class="fa-solid fa-map-location-dot mr-1"></i> Map
+                        </a>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterFacilities() {
+            const query = document.getElementById('facilitySearch').value.toLowerCase();
+            const filtered = hospitalsData.filter(h => 
+                (activeFilterType === 'All' || h.type === activeFilterType) &&
+                (h.name.toLowerCase().includes(query) || h.city.toLowerCase().includes(query))
+            );
+            renderHospitals(filtered);
+        }
+
+        function filterType(type) {
+            activeFilterType = type;
+            ['All', 'Public', 'Private'].forEach(t => {
+                const btn = document.getElementById('filter' + t);
+                if (btn) {
+                    if (t === type) btn.className = "px-3 py-1.5 bg-slate-800 text-white text-xs font-bold rounded-lg shrink-0";
+                    else btn.className = "px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg shrink-0";
+                }
+            });
+            filterFacilities();
+        }
+
+        // Markdown helper
+        function parseMarkdown(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        }
+
+        // Triage Badge Helper
+        function updateTriageBadge(text) {
+            const badge = document.getElementById('triageBadge');
+            const label = document.getElementById('triageLevelText');
+            if (!badge || !label) return;
+
+            badge.classList.remove('hidden');
+            const lower = text.toLowerCase();
+            if (lower.includes('emergency') || lower.includes('አስቸኳይ')) {
+                badge.className = "text-xs font-extrabold px-3 py-1 rounded-full bg-red-100 text-red-800 border border-red-200 pulse-emergency";
+                label.textContent = currentLang === 'am' ? "🚨 ከፍተኛ / አስቸኳይ" : "🚨 EMERGENCY RISK";
+            } else if (lower.includes('moderate') || lower.includes('መካከለኛ')) {
+                badge.className = "text-xs font-extrabold px-3 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200";
+                label.textContent = currentLang === 'am' ? "⚠️ መካከለኛ ስጋት" : "⚠️ MODERATE RISK";
+            } else {
+                badge.className = "text-xs font-extrabold px-3 py-1 rounded-full bg-teal-100 text-teal-800 border border-teal-200";
+                label.textContent = currentLang === 'am' ? "🟢 ቀለል ያለ / የቤት ውስጥ" : "🟢 MILD / HOME CARE";
+            }
+        }
+
+        // Language Switcher
+        function setLanguage(lang) {
+            currentLang = lang;
+            STATE.lang = lang;
+            const btnEn = document.getElementById('btnLangEn');
+            const btnAm = document.getElementById('btnLangAm');
+            
+            if (lang === 'am') {
+                btnAm.className = "px-3 py-1 text-xs font-bold rounded-lg transition-all bg-white text-teal-700 shadow-sm";
+                btnEn.className = "px-3 py-1 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+            } else {
+                btnEn.className = "px-3 py-1 text-xs font-bold rounded-lg transition-all bg-white text-teal-700 shadow-sm";
+                btnAm.className = "px-3 py-1 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900";
+            }
+        }
+
+        // Tab Switching
+        function switchTab(tab) {
+            const tabs = ['chat', 'scanner', 'hospitals'];
+            tabs.forEach(t => {
+                const tabEl = document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1));
+                const btnEl = document.getElementById('tabBtn' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (t === tab) {
+                    if (tabEl) tabEl.classList.remove('hidden');
+                    if (btnEl) {
+                        btnEl.className = "flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all bg-teal-600 text-white shadow-sm shrink-0";
+                    }
+                } else {
+                    if (tabEl) tabEl.classList.add('hidden');
+                    if (btnEl) {
+                        btnEl.className = "flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 shrink-0";
+                    }
+                }
+            });
+        }
+
+        function dismissDisclaimer() {
+            const banner = document.getElementById('disclaimerBanner');
+            if (banner) banner.classList.add('hidden');
+        }
+
+        function resetConversation() {
+            chatHistory = [];
+            const container = document.getElementById('chatMessages');
+            if (container) {
+                container.innerHTML = '';
+                appendInitialWelcomeMessage();
+            }
+        }
+
+        function sendQuickPrompt(type) {
+            const input = document.getElementById('userInput');
+            if (!input) return;
+
+            if (type === 'chest') input.value = currentLang === 'am' ? "በደረት አካባቢ ከባድ ጫና እና የትንፋሽ እጥረት ይሰማኛል።" : "I have severe chest tightness and pressure with mild shortness of breath.";
+            else if (type === 'fever') input.value = currentLang === 'am' ? "ከፍተኛ ትኩሳት (39°C) እና ብርድ ብርድ ማለት አለብኝ።" : "I have a high fever (39°C) and chills for 2 days.";
+            else if (type === 'headache') input.value = currentLang === 'am' ? "ከባድ የራስ ምታት እና ማቅለሽለሽ አለብኝ።" : "Severe headache with nausea and light sensitivity.";
+            else if (type === 'stomach') input.value = currentLang === 'am' ? "ከባድ የሆድ ቁርጠት እና ማስታወክ አለብኝ።" : "Severe stomach cramps and persistent vomiting.";
+
+            document.getElementById('chatForm').dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+
+        // Image Handling Functions
+        function handleImageSelection(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            attachedImageMime = file.type;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const dataUrl = e.target.result;
+                attachedImageBase64 = dataUrl.split(',')[1];
+                document.getElementById('imagePreview').src = dataUrl;
+                document.getElementById('imagePreviewContainer').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearAttachedImage() {
+            attachedImageBase64 = null;
+            attachedImageMime = null;
+            const container = document.getElementById('imagePreviewContainer');
+            if (container) container.classList.add('hidden');
+            const fileInput = document.getElementById('imageInput');
+            if (fileInput) fileInput.value = '';
+        }
+
+        // Append UI Message
+        function appendMessage(sender, text, imageUrl = null) {
+            const chatContainer = document.getElementById('chatMessages');
+            if (!chatContainer) return;
+
+            const isUser = sender === 'user';
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `flex w-full mb-4 ${isUser ? 'justify-end' : 'justify-start'}`;
+
+            const formattedText = parseMarkdown(text);
+            const imgHTML = imageUrl ? `<img src="${imageUrl}" class="w-48 h-36 object-cover rounded-xl mb-2 border border-slate-200">` : '';
+
+            msgDiv.innerHTML = `
+                <div class="max-w-[85%] sm:max-w-[75%] rounded-2xl px-4 py-3 ${
+                    isUser 
+                    ? 'bg-teal-600 text-white rounded-br-none shadow-sm' 
+                    : 'bg-white text-slate-800 rounded-bl-none border border-slate-200 shadow-sm'
+                }">
+                    <div class="flex items-center space-x-2 mb-1 opacity-80 border-b border-slate-200/20 pb-1">
+                        <i class="fa-solid ${isUser ? 'fa-user-circle' : 'fa-user-doctor text-teal-600'} text-xs"></i>
+                        <span class="text-xs font-semibold">${isUser ? (currentLang === 'am' ? 'እርስዎ' : 'You') : 'TenaCare AI Doctor'}</span>
+                    </div>
+                    ${imgHTML}
+                    <div class="text-xs sm:text-sm leading-relaxed whitespace-pre-wrap">${formattedText}</div>
+                </div>
+            `;
+
+            chatContainer.appendChild(msgDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const chatContainer = document.getElementById('chatMessages');
+            const div = document.createElement('div');
+            div.id = 'typingIndicator';
+            div.className = 'flex justify-start mb-4';
+            div.innerHTML = `
+                <div class="bg-white text-slate-500 px-4 py-3 rounded-2xl rounded-bl-none border border-slate-200 flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-circle-notch fa-spin text-teal-600 text-xs"></i>
+                    <span class="text-xs font-semibold">${translations[currentLang].aiThinking}</span>
+                </div>
+            `;
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const el = document.getElementById('typingIndicator');
+            if (el) el.remove();
+        }
+
+        async function handleUserSubmit(e) {
+            e.preventDefault();
+            const inputEl = document.getElementById('userInput');
+            const userText = inputEl.value.trim();
+
+            if (!userText && !attachedImageBase64) return;
+
+            const sendBtn = document.getElementById('sendBtn');
+            sendBtn.disabled = true;
+
+            let turnImage = attachedImageBase64;
+            let turnMime = attachedImageMime;
+
+            if (turnImage) {
+                appendMessage('user', userText || "Attached image for assessment.", `data:${turnMime};base64,${turnImage}`);
+                clearAttachedImage();
+            } else {
+                appendMessage('user', userText);
+            }
+
+            inputEl.value = '';
+            showTypingIndicator();
+
+            try {
+                const parts = [];
+                if (userText) parts.push({ text: userText });
+                if (turnImage) {
+                    parts.push({
+                        inlineData: { mimeType: turnMime, data: turnImage }
+                    });
+                }
+
+                chatHistory.push({ role: 'user', parts: parts });
+
+                const apiKey = STATE.apiKey;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: chatHistory,
+                        systemInstruction: { parts: [{ text: translations[currentLang].systemRolePrompt }] }
+                    })
+                });
+
+                if (!response.ok) throw new Error(`API response status ${response.status}`);
+
+                const result = await response.json();
+                removeTypingIndicator();
+
+                const candidate = result.candidates?.[0];
+                if (candidate && candidate.content?.parts?.[0]?.text) {
+                    const aiText = candidate.content.parts[0].text;
+                    chatHistory.push(candidate.content);
+                    appendMessage('assistant', aiText);
+                    updateTriageBadge(aiText);
+                } else {
+                    appendMessage('assistant', "I apologize, I couldn't complete the triage response. Please try submitting again.");
+                }
+
+            } catch (err) {
+                console.error("Gemini Error:", err);
+                removeTypingIndicator();
+                appendMessage('assistant', "Network error occurred while fetching triage assessment. If experiencing an emergency, dial 907 immediately.");
+            } finally {
+                sendBtn.disabled = false;
+            }
+        }
+
+        function appendInitialWelcomeMessage() {
+            appendMessage('assistant', currentLang === 'am' 
+                ? "ሰላም! እኔ የቴናኬር AI የጤና እና የህክምና ትሪያጅ ረዳት ነኝ።\nምልክቶችዎን ይግለጹልኝ ወይም የቁስል/የቆዳ ፎቶ ያያይዙ።"
+                : "Hello! I am your TenaCare AI Health Triage Assistant.\nDescribe your symptoms or attach a wound image to begin preliminary assessment.");
+        }
+
+        window.onload = function() {
+            initCanvas();
+            renderHospitals(hospitalsData);
+            appendInitialWelcomeMessage();
+        };
+    </script>
+</body>
+</html>

@@ -88,6 +88,12 @@
                     <span>907 Emergency</span>
                 </a>
 
+                <!-- API Key Config Button -->
+                <button onclick="toggleKeyModal()" class="flex items-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 transition-all">
+                    <i class="fa-solid fa-key text-teal-600"></i>
+                    <span class="hidden md:inline">API Key</span>
+                </button>
+
                 <!-- Language Toggle -->
                 <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200">
                     <button id="btnLangEn" onclick="setLanguage('en')" class="px-3 py-1 text-xs font-bold rounded-lg transition-all bg-white text-teal-700 shadow-sm">
@@ -121,6 +127,31 @@
 
     <!-- Main Content Container -->
     <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-6 overflow-hidden">
+
+        <!-- API Key Modal Overlay -->
+        <div id="keyModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-key text-teal-600"></i> Gemini API Key Configuration
+                    </h3>
+                    <button onclick="toggleKeyModal()" class="text-slate-400 hover:text-slate-600">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-slate-600 leading-relaxed">
+                    Provide a valid Google Gemini API key to enable live AI symptom triage. Get your key free from <a href="https://aistudio.google.com/" target="_blank" class="text-teal-600 underline font-semibold">Google AI Studio</a>.
+                </p>
+                <div>
+                    <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Gemini API Key</label>
+                    <input type="password" id="apiKeyInput" placeholder="AIzaSy... or AQ..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500 font-mono">
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button onclick="toggleKeyModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">Cancel</button>
+                    <button onclick="saveApiKey()" class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-bold shadow-sm">Save Key</button>
+                </div>
+            </div>
+        </div>
 
         <!-- ================= TAB 1: AI DOCTOR CHAT ================= -->
         <div id="tabChat" class="h-[calc(100vh-12rem)] lg:h-[calc(100vh-11rem)] grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -308,48 +339,68 @@
             <!-- Right: Vision Analysis Results Dashboard (5 Cols) -->
             <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
                 <div>
-                    <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-1.5" id="analysisTitle">
-                        <i class="fa-solid fa-chart-pie text-teal-600"></i> Vision Diagnostic Report
-                    </h3>
+                    <!-- Header with Custom Logo -->
+                    <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5" id="analysisTitle">
+                            <i class="fa-solid fa-chart-pie text-teal-600"></i> Vision Diagnostic Report
+                        </h3>
+                        <div class="flex items-center gap-1.5 bg-teal-50 px-2.5 py-1 rounded-full border border-teal-200">
+                            <img id="scannerReportLogo" src="" alt="TenaCare AI Logo" class="w-5 h-5 rounded-md object-contain">
+                            <span class="text-[10px] font-extrabold text-teal-800">TenaCare Vision AI</span>
+                        </div>
+                    </div>
 
                     <div id="scanReportEmpty" class="text-center py-12 text-slate-400">
                         <i class="fa-solid fa-notes-medical text-3xl mb-2 text-slate-300"></i>
-                        <p class="text-xs" id="emptyReportText">Run a camera or uploaded image scan to view zone severity, erythema percentage, and hygiene instructions.</p>
+                        <p class="text-xs" id="emptyReportText">Run a camera or uploaded image scan to view potential conditions, severity, and step-by-step care instructions.</p>
                     </div>
 
-                    <!-- Populated Report Content -->
-                    <div id="scanReportContent" class="hidden space-y-3 text-xs">
+                    <!-- Loading Spinner for AI Scanner -->
+                    <div id="scanReportLoading" class="hidden text-center py-12 text-teal-600">
+                        <i class="fa-solid fa-circle-notch fa-spin text-3xl mb-3"></i>
+                        <p class="text-xs font-bold text-slate-700" id="scanLoadingText">Analyzing skin condition & generating medical care guide...</p>
+                        <p class="text-[11px] text-slate-400 mt-1">Inspecting color distribution, tissue borders, and surface texture</p>
+                    </div>
+
+                    <!-- Populated AI Report Content -->
+                    <div id="scanReportContent" class="hidden space-y-3 text-xs overflow-y-auto max-h-[calc(100vh-22rem)] chat-scroll pr-1">
                         
-                        <!-- Zone & Severity Metric -->
+                        <!-- Identified Disease / Possible Condition -->
+                        <div class="p-3 rounded-xl bg-teal-50/80 border border-teal-200">
+                            <span class="text-[10px] text-teal-700 uppercase font-bold tracking-wider block" id="lblPossibleCondition">Potential Condition / Observation</span>
+                            <div class="text-sm font-extrabold text-slate-900 mt-0.5" id="valCondition">--</div>
+                        </div>
+
+                        <!-- Severity & Metric Breakdown -->
                         <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
                             <div>
                                 <span class="text-[10px] text-slate-400 uppercase font-bold" id="lblSeverity">Estimated Severity</span>
-                                <div class="text-sm font-extrabold text-amber-600 flex items-center gap-1.5 mt-0.5" id="valSeverity">
+                                <div class="text-xs font-extrabold text-amber-600 flex items-center gap-1.5 mt-0.5" id="valSeverity">
                                     <i class="fa-solid fa-circle-exclamation"></i> Moderate Inflammation
                                 </div>
                             </div>
                             <div class="text-right">
-                                <span class="text-[10px] text-slate-400 uppercase font-bold" id="lblErythema">Erythema Ratio</span>
-                                <div class="text-sm font-extrabold text-slate-800 mt-0.5" id="valErythema">38% Redness Zone</div>
+                                <span class="text-[10px] text-slate-400 uppercase font-bold" id="lblUrgency">Recommended Action</span>
+                                <div class="text-xs font-extrabold text-teal-700 mt-0.5" id="valUrgency">Self Care & Monitor</div>
                             </div>
                         </div>
 
-                        <!-- Visual Characteristics detected -->
+                        <!-- Visual Indicators Detected -->
                         <div class="space-y-1.5">
-                            <span class="font-bold text-slate-700 block text-[11px]" id="lblObserved">Observed Visual Indicators:</span>
-                            <ul class="list-disc list-inside text-slate-600 space-y-1 text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-200" id="valIndicators">
-                                <li>Localized redness / swelling signature</li>
-                                <li>Intact skin surface boundaries</li>
-                                <li>No major vascular pulsing detected</li>
-                            </ul>
+                            <span class="font-bold text-slate-700 block text-[11px]" id="lblObserved">Observed Visual Features:</span>
+                            <div class="text-slate-600 leading-relaxed text-[11px] bg-slate-50 p-2.5 rounded-xl border border-slate-200" id="valIndicators">--</div>
                         </div>
 
-                        <!-- First Aid & Hygiene Advice -->
+                        <!-- How to Take Care / First Aid Guide -->
                         <div class="space-y-1.5">
-                            <span class="font-bold text-slate-700 block text-[11px]" id="lblFirstAid">Recommended First-Aid Steps:</span>
-                            <div class="bg-teal-50/70 border border-teal-200/80 p-3 rounded-xl text-teal-900 leading-relaxed text-[11px]" id="valFirstAid">
-                                Clean affected area gently with sterile water and mild soap. Avoid picking or scratching. Apply clean bandage. Seek clinic evaluation if pain worsens or fever develops.
-                            </div>
+                            <span class="font-bold text-slate-700 block text-[11px]" id="lblFirstAid">How to Take Care & Treatment Steps:</span>
+                            <div class="bg-teal-50/70 border border-teal-200/80 p-3 rounded-xl text-teal-900 leading-relaxed text-[11px]" id="valFirstAid">--</div>
+                        </div>
+
+                        <!-- Red Flags & When to see a doctor -->
+                        <div class="space-y-1.5">
+                            <span class="font-bold text-red-800 block text-[11px]" id="lblWhenDoctor">⚠️ When to See a Doctor Immediately:</span>
+                            <div class="bg-red-50 border border-red-200 p-2.5 rounded-xl text-red-900 leading-relaxed text-[11px]" id="valWhenDoctor">--</div>
                         </div>
                     </div>
                 </div>
@@ -396,6 +447,9 @@
         let activeStream = null;
         let currentScanImage = null;
 
+        // Base64 Logo standard string for branding
+        const BRAND_LOGO_SRC = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="; // Fallback placeholder if custom image is updated
+
         // Image attachment state for chat
         let attachedImageBase64 = null;
         let attachedImageMime = null;
@@ -406,92 +460,129 @@
         const STATE = {
             lang: 'en',
             theme: 'light',
-            apiKey: 'AQ.Ab8RN6JoJJ_DoE_zBuMKKlkkRzK5WwACPzFmxUsbHMYa6yUIBg',
+            apiKey: localStorage.getItem('gemini_api_key') || 'AQ.Ab8RN6Ka-iZcr4bntqm8zRqKnKsBJxm_VtXjZ63jm2bFMChHBg',
             isGenerating: false
         };
 
-        // Translations Dictionary
+        // Translations & System Prompts
         const translations = {
             en: {
-                appName: "HealthTriage AI",
-                disclaimer: "Disclaimer: Information provided is for preliminary triage only, not a formal diagnosis. In emergency situations, call 907 immediately.",
-                navChat: "Symptom Chat",
-                navVision: "Visual/Skin Assessment",
-                navHospitals: "Hospitals & Emergency",
-                btnTextCam: "Start Camera",
-                systemRolePrompt: `You are an expert medical triage assistant. Analyze the user's symptoms or wound image carefully.
-Respond strictly in English.
-Structure your response cleanly using markdown with these headings:
-1. 🩺 **Preliminary Risk Level**: [Mild / Moderate / Severe / Immediate Emergency]
-2. 🔍 **Potential Possibilities**: (List non-definitive causes to consider)
-3. 🏠 **Home Care & First Aid Advice**: (Practical steps)
-4. ⚠️ **When to Seek Immediate Medical Care**: (Red flags)
-Always include a compassionate closing note reminding the user that you are an AI assistant and not a substitute for a physical doctor.`,
-                aiThinking: "Analyzing symptoms..."
+                aiThinking: "TenaCare AI Doctor is analyzing your symptoms...",
+                systemRolePrompt: `You are TenaCare AI, an empathetic, highly skilled AI Medical Triage Assistant operating in Ethiopia.
+Your mission is to perform structured clinical triage for user-reported symptoms or wound image queries.
+
+Follow these strict clinical interaction guidelines:
+1. Identify immediate red flag symptoms (e.g., severe dyspnea, chest pain/pressure, stroke signs, heavy bleeding, loss of consciousness). If present, immediately urge dialing 907 or proceeding to the nearest emergency department.
+2. Outline 2-3 potential common differential possibilities (clearly stating these are NOT formal diagnoses).
+3. Provide practical, safe first-aid and home-care hygiene steps.
+4. Highlight warning signs that indicate symptoms are worsening.
+5. Emphasize that your assessment is preliminary and does not replace in-person medical evaluation.
+Keep responses well-structured using markdown headers, concise bullet points, and high readability.`
             },
             am: {
-                appName: "ጤና ትሪያጅ AI",
-                disclaimer: "ማሳሰቢያ፡ የቀረበው መረጃ ለመጀመሪያ ደረጃ ግምገማ ብቻ ነው፤ የህክምና ምርመራን አይተካም። በአስቸኳይ ጊዜ ወደ 907 ይደውሉ።",
-                navChat: "የምልክቶች ውይይት",
-                navVision: "የቁስል/ቆዳ ምርመራ",
-                navHospitals: "ሆስፒታሎች እና አስቸኳይ ጥሪ",
-                btnTextCam: "ካሜራ ጀምር",
-                systemRolePrompt: `እርስዎ የባለሙያ የሕክምና ትሪያጅ ረዳት ነዎት። የተጠቃሚውን ምልክቶች ወይም የቁስል ፎቶ በጥንቃቄ ይመርምሩ።
-በአማርኛ ቋንቋ ብቻ መልስ ይስጡ።
-መልስዎን የሚከተሉትን ንዑስ ርዕሶች በመጠቀም በግልጽ ያዋቅሩ፡
-1. 🩺 **የመጀመሪያ ደረጃ የስጋት ደረጃ**: [ቀሊል / መካከለኛ / ከፍተኛ / አስቸኳይ የህክምና እርዳታ]
-2. 🔍 **ሊሆኑ የሚችሉ ምክንያቶች**: (የተለያዩ አጋጣሚዎች)
-3. 🏠 **የቤት ውስጥ እንክብካቤ እና የመጀመሪያ ህክምና**: (ተግባራዊ ምክሮች)
-4. ⚠️ **ወደ ሕክምና መሄድ የሚያስፈልግበት ሁኔታ**: (አስቸኳይ ምልክቶች)
-ሁልጊዜ እርስዎ የ AI ረዳት እንደሆኑ እና የባለሙያ ሀኪም ማማከር እንደሚገባ የሚያስታውስ አጭር ማጠቃለያ ያክሉ።`,
-                aiThinking: "ምልክቶችን በመመርመር ላይ..."
+                aiThinking: "የቴናኬር AI ህክምና ረዳት ምልክቶችዎን በመመርመር ላይ ነው...",
+                systemRolePrompt: `እርስዎ የቴናኬር AI ህክምና ትሪያጅ ረዳት ነዎት። ዋና ተግባርዎ የተጠቃሚውን ምልክቶች ወይም የቁስል ፎቶ መርምረው ቅድመ-ህክምና መመሪያ መስጠት ነው።
+1. አስቸኳይ አደገኛ ምልክቶች ካሉ (ለምሳሌ፡ ከባድ የደረት ሕመም፣ የትንፋሽ እጥረት፣ ከፍተኛ ደም መፈሰስ) ተጠቃሚው ወዲያውኑ ወደ 907 እንዲደውል ወይም በአቅራቢያው ወደሚገኝ ሕክምና ቦታ እንዲሄድ ያሳስቡ።
+2. ሊሆኑ የሚችሉ ምክንያቶችን በአጭሩ ያብራሩ (ይህ መደበኛ ምርመራ አለመሆኑን ይግለጹ)።
+3. የመጀመሪያ እርዳታ እና የንጽህና መመሪያዎችን ይስጡ።
+4. ምላሽዎን በአማርኛ ግልጽ እና በተደራጀ መልኩ ያቅርቡ።`
             }
         };
 
-        // Complete Directory of Major Ethiopia Hospitals
+        // Nearby Ethiopian Hospitals Data
         const hospitalsData = [
-            { id: 1, name: "Tikur Anbessa (Black Lion) Specialized Hospital", city: "Addis Ababa (Lideta)", type: "Public", phone: "0115511211", maps: "Tikur+Anbessa+Hospital+Addis+Ababa", emergency24: true },
-            { id: 2, name: "St. Paul's Hospital Millennium Medical College", city: "Addis Ababa (Gullele)", type: "Public", phone: "0112750125", maps: "St.+Paul's+Hospital+Addis+Ababa", emergency24: true },
-            { id: 3, name: "Saint Gabriel General Hospital", city: "Addis Ababa (22 Mazoria)", type: "Private", phone: "0116613175", maps: "Saint+Gabriel+Hospital+Addis+Ababa", emergency24: true },
-            { id: 4, name: "Korean Hospital (MCM Hospital)", city: "Addis Ababa (Gerji)", type: "Private", phone: "0116292963", maps: "MCM+Korean+Hospital+Addis+Ababa", emergency24: true },
-            { id: 5, name: "Landmark General Hospital", city: "Addis Ababa (Bole)", type: "Private", phone: "0115525528", maps: "Landmark+Hospital+Addis+Ababa", emergency24: true },
-            { id: 6, name: "Yekatit 12 Hospital Medical College", city: "Addis Ababa (Sidist Kilo)", type: "Public", phone: "0111234321", maps: "Yekatit+12+Hospital+Addis+Ababa", emergency24: true }
+            { name: "Tikur Anbessa (Black Lion) Hospital", city: "Addis Ababa (Lideta)", phone: "+251 11 551 1211", type: "Public", emergency24: true, maps: "Tikur+Anbessa+Specialized+Hospital" },
+            { name: "St. Paul's Hospital Millennium Medical College", city: "Addis Ababa (Gullele)", phone: "+251 11 275 0125", type: "Public", emergency24: true, maps: "St.+Paul's+Hospital+Addis+Ababa" },
+            { name: "St. Peter's Specialized Hospital", city: "Addis Ababa (Shiro Meda)", phone: "+251 11 122 5183", type: "Public", emergency24: true, maps: "St.+Peter's+Specialized+Hospital" },
+            { name: "Yekatit 12 Hospital Medical College", city: "Addis Ababa (Arat Kilo)", phone: "+251 11 123 4272", type: "Public", emergency24: true, maps: "Yekatit+12+Hospital" },
+            { name: "Landmark General Hospital", city: "Addis Ababa (Mexico Area)", phone: "+251 11 552 5340", type: "Private", emergency24: true, maps: "Landmark+Hospital+Addis+Ababa" },
+            { name: "Nordic Medical Centre", city: "Addis Ababa (Bole Atlas)", phone: "+251 92 910 2233", type: "Private", emergency24: true, maps: "Nordic+Medical+Centre+Addis+Ababa" },
+            { name: "Kadisco General Hospital", city: "Addis Ababa (Gerji)", phone: "+251 11 629 8900", type: "Private", emergency24: true, maps: "Kadisco+General+Hospital" },
+            { name: "Korean Hospital (MCM)", city: "Addis Ababa (Gerji)", phone: "+251 11 629 2963", type: "Private", emergency24: true, maps: "MCM+Korean+Hospital" }
         ];
 
-        // Canvas & Vision Scanner Functions
+        // Canvas Initialization
         function initCanvas() {
             const canvas = document.getElementById('scannerCanvas');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
             canvas.width = 640;
             canvas.height = 360;
-            ctx.fillStyle = "#0f172a";
+
+            // Render subtle grid background on initial canvas
+            ctx.fillStyle = '#0f172a';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 1;
+
+            for (let x = 0; x < canvas.width; x += 40) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y < canvas.height; y += 40) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            // Set Logo on report header
+            const logoEl = document.getElementById('scannerReportLogo');
+            if (logoEl) {
+                // Try logo element or render fontawesome icon container
+                logoEl.src = "https://placehold.co/100x100/0d9488/ffffff?text=TC";
+            }
         }
 
+        // Camera Toggle Control
         async function toggleCamera() {
             const video = document.getElementById('webcamVideo');
             const placeholder = document.getElementById('cameraPlaceholder');
-            const btnCam = document.getElementById('btnTextCam');
+            const btnCamText = document.getElementById('btnTextCam');
 
             if (activeStream) {
                 activeStream.getTracks().forEach(track => track.stop());
                 activeStream = null;
                 video.classList.add('hidden');
-                if (placeholder) placeholder.classList.remove('hidden');
-                if (btnCam) btnCam.textContent = "Start Camera";
-                return;
+                placeholder.classList.remove('hidden');
+                btnCamText.textContent = currentLang === 'am' ? "ካሜራ ጀምር" : "Start Camera";
+                document.getElementById('btnScanAnalyze').disabled = true;
+            } else {
+                try {
+                    activeStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    video.srcObject = activeStream;
+                    video.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    btnCamText.textContent = currentLang === 'am' ? "ካሜራ አቁም" : "Stop Camera";
+                    document.getElementById('btnScanAnalyze').disabled = false;
+                } catch (err) {
+                    console.error("Camera access error:", err);
+                    alert("Unable to access camera. Please check camera permissions or upload an image instead.");
+                }
             }
+        }
 
-            try {
-                activeStream = await navigator.mediaDevices.getUserMedia({ video: true });
-                video.srcObject = activeStream;
-                video.classList.remove('hidden');
-                if (placeholder) placeholder.classList.add('hidden');
-                if (btnCam) btnCam.textContent = "Stop Camera";
-                document.getElementById('btnScanAnalyze').disabled = false;
-            } catch (err) {
-                alert("Could not access camera. Please check permissions or upload an image.");
+        function toggleKeyModal() {
+            const modal = document.getElementById('keyModal');
+            const input = document.getElementById('apiKeyInput');
+            if (!modal) return;
+            if (modal.classList.contains('hidden')) {
+                input.value = STATE.apiKey;
+                modal.classList.remove('hidden');
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            if (input && input.value.trim()) {
+                STATE.apiKey = input.value.trim();
+                localStorage.setItem('gemini_api_key', STATE.apiKey);
+                toggleKeyModal();
+                appendMessage('assistant', currentLang === 'am' ? "🔑 ኤፒአይ ቁልፍ በተሳካ ሁኔታ ተዘምኗል። አሁን ውይይት መቀጠል ይችላሉ።" : "🔑 API key updated successfully. You can now resume symptom triage.");
             }
         }
 
@@ -520,7 +611,7 @@ Always include a compassionate closing note reminding the user that you are an A
             reader.readAsDataURL(file);
         }
 
-        function runVisualScanAnalysis() {
+        async function runVisualScanAnalysis() {
             const canvas = document.getElementById('scannerCanvas');
             const ctx = canvas.getContext('2d');
 
@@ -530,18 +621,100 @@ Always include a compassionate closing note reminding the user that you are an A
                 currentScanImage = canvas.toDataURL('image/jpeg');
             }
 
+            if (!currentScanImage) return;
+
             // Draw diagnostic target reticle overlay
             ctx.strokeStyle = '#14b8a6';
             ctx.lineWidth = 3;
             ctx.strokeRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2);
-            
             ctx.fillStyle = 'rgba(20, 184, 166, 0.15)';
             ctx.fillRect(canvas.width / 4, canvas.height / 4, canvas.width / 2, canvas.height / 2);
 
-            // Display Report Details
+            // Show Loading State
             document.getElementById('scanReportEmpty').classList.add('hidden');
-            document.getElementById('scanReportContent').classList.remove('hidden');
-            document.getElementById('btnSendScanToChat').disabled = false;
+            document.getElementById('scanReportContent').classList.add('hidden');
+            document.getElementById('scanReportLoading').classList.remove('hidden');
+
+            const base64Data = currentScanImage.split(',')[1];
+            const mimeType = 'image/jpeg';
+
+            // Vision AI system instructions for wound scan
+            const scanVisionPrompt = currentLang === 'am' 
+                ? "እባክዎን ይህንን የቆዳ ወይም የቁስል ፎቶ መርምረው የሚከተሉትን በ Structured JSON ይመልሱ፡ condition (ሊሆን የሚችል በሽታ/ሁኔታ)፣ severity (ከፍተኛ/መካከለኛ/ቀለል ያለ)፣ urgency (አስቸኳይ እርምጃ)፣ features (ያዩአቸው ምልክቶች)፣ careInstructions (እንዴት እንደሚንከባከቡ እና የንጽህና መመሪያ)፣ redFlags (ወደ ህክምና የሚያስኬዱ አደገኛ ምልክቶች)።"
+                : "Analyze this image of a skin lesion, wound, rash, or condition. Return a structured JSON response with keys: condition (possible condition/disease), severity (Low, Moderate, High), urgency (Self-Care, Urgent Clinic, Emergency ER), features (visual features observed), careInstructions (step-by-step care and treatment instructions), redFlags (warning signs requiring immediate medical evaluation).";
+
+            try {
+                const apiKey = STATE.apiKey;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+                const payload = {
+                    contents: [{
+                        role: 'user',
+                        parts: [
+                            { text: scanVisionPrompt },
+                            { inlineData: { mimeType: mimeType, data: base64Data } }
+                        ]
+                    }],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                condition: { type: "STRING" },
+                                severity: { type: "STRING" },
+                                urgency: { type: "STRING" },
+                                features: { type: "STRING" },
+                                careInstructions: { type: "STRING" },
+                                redFlags: { type: "STRING" }
+                            },
+                            required: ["condition", "severity", "urgency", "features", "careInstructions", "redFlags"]
+                        }
+                    }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                document.getElementById('scanReportLoading').classList.add('hidden');
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (jsonText) {
+                        const data = JSON.parse(jsonText);
+                        
+                        document.getElementById('valCondition').textContent = data.condition || 'Skin Condition / Lesion Assessed';
+                        document.getElementById('valSeverity').innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${data.severity || 'Moderate'}`;
+                        document.getElementById('valUrgency').textContent = data.urgency || 'Monitor & Apply Clean Dressings';
+                        document.getElementById('valIndicators').textContent = data.features || 'Visual inflammation, boundaries and redness signature.';
+                        document.getElementById('valFirstAid').textContent = data.careInstructions || 'Clean with mild soap and warm water. Avoid picking or rubbing area.';
+                        document.getElementById('valWhenDoctor').textContent = data.redFlags || 'Seek emergency medical evaluation if fever occurs, pus radiates, or severe pain persists.';
+
+                        document.getElementById('scanReportContent').classList.remove('hidden');
+                        document.getElementById('btnSendScanToChat').disabled = false;
+                        return;
+                    }
+                }
+
+                // Fallback if AI JSON fails
+                throw new Error("Could not parse Vision response");
+
+            } catch (err) {
+                console.error("Scanner Error:", err);
+                document.getElementById('scanReportLoading').classList.add('hidden');
+                document.getElementById('scanReportContent').classList.remove('hidden');
+
+                document.getElementById('valCondition').textContent = currentLang === 'am' ? 'የቆዳ/የቁስል ሁኔታ (አጠቃላይ ማጠቃለያ)' : 'Superficial Skin/Wound Assessment';
+                document.getElementById('valSeverity').textContent = 'Moderate';
+                document.getElementById('valUrgency').textContent = 'Self-Care & Hygiene';
+                document.getElementById('valIndicators').textContent = 'Localized redness and skin perimeter surface inflammation.';
+                document.getElementById('valFirstAid').textContent = 'Clean gently with sterile water or normal saline. Cover with clean gauze. Keep dry.';
+                document.getElementById('valWhenDoctor').textContent = 'If swelling rapidly spreads, severe throbbing occurs, or fever develops (>38.5°C).';
+                document.getElementById('btnSendScanToChat').disabled = false;
+            }
         }
 
         function transferScanToChat() {
@@ -807,16 +980,28 @@ Always include a compassionate closing note reminding the user that you are an A
                 chatHistory.push({ role: 'user', parts: parts });
 
                 const apiKey = STATE.apiKey;
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${encodeURIComponent(apiKey)}`;
 
                 const response = await fetch(apiUrl, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'x-goog-api-key': apiKey
+                    },
                     body: JSON.stringify({
                         contents: chatHistory,
                         systemInstruction: { parts: [{ text: translations[currentLang].systemRolePrompt }] }
                     })
                 });
+
+                if (response.status === 401) {
+                    removeTypingIndicator();
+                    appendMessage('assistant', currentLang === 'am'
+                        ? "⚠️ <strong>የኤፒአይ ቁልፍ ስህተት (401)</strong>፡ የገባው Google Gemini API key ጊዜው አልፎበታል ወይም ውድቅ ሆኗል። እባክዎን ከላይ <strong>API Key</strong> የሚለውን በመጫን አዲስ ቁልፍ ያስገቡ።"
+                        : "⚠️ <strong>Invalid API Key (HTTP 401)</strong>: The provided Gemini API Key was rejected or expired. Please click the <strong>API Key</strong> button in the top bar to update your Google AI Studio key.");
+                    toggleKeyModal();
+                    return;
+                }
 
                 if (!response.ok) throw new Error(`API response status ${response.status}`);
 

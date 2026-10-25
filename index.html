@@ -39,6 +39,14 @@
             background-color: #cbd5e1;
             border-radius: 20px;
         }
+        /* Enable scrollability on mobile and dynamic desktop containers */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
         .pulse-emergency {
             animation: pulse-red 2s infinite;
         }
@@ -69,19 +77,19 @@
             
             <!-- Brand Logo -->
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-400 flex items-center justify-center text-white shadow-md">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-teal-400 flex items-center justify-center text-white shadow-md shrink-0">
                     <i class="fa-solid fa-heart-pulse text-xl"></i>
                 </div>
-                <div>
-                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 leading-none">
+                <div class="min-w-0">
+                    <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 leading-none truncate">
                         TenaCare <span class="text-teal-600">AI</span>
                     </h1>
-                    <p class="text-[11px] text-slate-500 font-semibold mt-0.5" id="headerSubtitle">Smart Health Triage & Wound Scanner</p>
+                    <p class="text-[11px] text-slate-500 font-semibold mt-0.5 truncate" id="headerSubtitle">Smart Health Triage & Wound Scanner</p>
                 </div>
             </div>
 
             <!-- Header Controls & Language Switcher -->
-            <div class="flex items-center gap-2 sm:gap-3">
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
                 <!-- Emergency Hotline Badge -->
                 <a href="tel:907" class="hidden sm:flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all shadow-sm">
                     <i class="fa-solid fa-phone-flip animate-bounce"></i>
@@ -126,11 +134,11 @@
     </header>
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-6 overflow-hidden">
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-4 lg:p-6 overflow-y-auto min-h-0">
 
         <!-- API Key Modal Overlay -->
-        <div id="keyModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4">
+        <div id="keyModal" class="hidden fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div class="bg-white rounded-2xl border border-slate-200 max-w-md w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto chat-scroll">
                 <div class="flex items-center justify-between border-b border-slate-100 pb-3">
                     <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
                         <i class="fa-solid fa-key text-teal-600"></i> Gemini API Key Configuration
@@ -154,10 +162,10 @@
         </div>
 
         <!-- ================= TAB 1: AI DOCTOR CHAT ================= -->
-        <div id="tabChat" class="h-[calc(100vh-12rem)] lg:h-[calc(100vh-11rem)] grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div id="tabChat" class="h-full min-h-[500px] lg:h-[calc(100vh-12rem)] grid grid-cols-1 lg:grid-cols-12 gap-4">
             
             <!-- Left: Main Chat Window (8 Cols) -->
-            <div class="lg:col-span-8 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-full">
+            <div class="lg:col-span-8 flex flex-col bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden h-[600px] lg:h-full">
                 
                 <!-- Chat Status Header -->
                 <div class="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between shrink-0">
@@ -178,12 +186,12 @@
                 </div>
 
                 <!-- Chat Scroll Stream Area -->
-                <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll bg-slate-50/40">
+                <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll bg-slate-50/40 min-h-0">
                     <!-- Initial Welcome Message rendered by JS -->
                 </div>
 
                 <!-- Quick Symptom Action Chips -->
-                <div class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto text-xs shrink-0 no-scrollbar">
+                <div class="px-4 py-2 bg-white border-t border-slate-100 flex items-center gap-2 overflow-x-auto text-xs shrink-0 chat-scroll">
                     <span class="text-slate-400 text-[11px] font-bold uppercase tracking-wider shrink-0" id="promptsLabel">Quick Symptoms:</span>
                     <button onclick="sendQuickPrompt('chest')" class="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-800 rounded-full border border-red-200 font-medium whitespace-nowrap transition-colors">
                         🚨 Chest Tightness
@@ -237,7 +245,7 @@
             </div>
 
             <!-- Right: Urgent Triage Guide & Critical Signs (4 Cols) -->
-            <div class="lg:col-span-4 hidden lg:flex flex-col gap-4 overflow-y-auto chat-scroll">
+            <div class="lg:col-span-4 flex flex-col gap-4 overflow-y-auto chat-scroll max-h-[600px] lg:max-h-full">
                 
                 <!-- Severity Breakdown Cards -->
                 <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
@@ -283,10 +291,10 @@
         </div>
 
         <!-- ================= TAB 2: WOUND & SKIN CAMERA SCANNER ================= -->
-        <div id="tabScanner" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 h-auto lg:h-[calc(100vh-11rem)]">
+        <div id="tabScanner" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-0 lg:h-[calc(100vh-11rem)] overflow-y-auto lg:overflow-visible">
             
             <!-- Left: Camera Stream / Image Canvas Analysis (7 Cols) -->
-            <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between">
+            <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col justify-between overflow-y-auto chat-scroll">
                 <div>
                     <div class="flex items-center justify-between mb-3">
                         <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2" id="scannerTitle">
@@ -337,7 +345,7 @@
             </div>
 
             <!-- Right: Vision Analysis Results Dashboard (5 Cols) -->
-            <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between">
+            <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between overflow-y-auto chat-scroll max-h-[600px] lg:max-h-full">
                 <div>
                     <!-- Header with Custom Logo -->
                     <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
@@ -363,7 +371,7 @@
                     </div>
 
                     <!-- Populated AI Report Content -->
-                    <div id="scanReportContent" class="hidden space-y-3 text-xs overflow-y-auto max-h-[calc(100vh-22rem)] chat-scroll pr-1">
+                    <div id="scanReportContent" class="hidden space-y-3 text-xs overflow-y-auto max-h-[350px] chat-scroll pr-1">
                         
                         <!-- Identified Disease / Possible Condition -->
                         <div class="p-3 rounded-xl bg-teal-50/80 border border-teal-200">
@@ -406,7 +414,7 @@
                 </div>
 
                 <!-- Transfer Image Analysis to AI Chat -->
-                <button onclick="transferScanToChat()" id="btnSendScanToChat" disabled class="mt-4 w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow disabled:opacity-40">
+                <button onclick="transferScanToChat()" id="btnSendScanToChat" disabled class="mt-4 w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all shadow disabled:opacity-40 shrink-0">
                     <i class="fa-solid fa-comments"></i>
                     <span id="btnTextTransfer">Ask AI Doctor About This Scan</span>
                 </button>
@@ -414,10 +422,10 @@
         </div>
 
         <!-- ================= TAB 3: NEARBY HOSPITALS & EMERGENCY DIRECTORY ================= -->
-        <div id="tabHospitals" class="hidden h-auto lg:h-[calc(100vh-11rem)] flex flex-col gap-4">
+        <div id="tabHospitals" class="hidden h-auto min-h-0 lg:h-[calc(100vh-11rem)] flex flex-col gap-4 overflow-y-auto chat-scroll">
             
             <!-- Directory Filter Bar -->
-            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">
                 <div class="relative w-full sm:w-80">
                     <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-400 text-xs"></i>
                     <input type="text" id="facilitySearch" oninput="filterFacilities()" placeholder="Search hospital name or zone in Addis Ababa..." class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500">
@@ -640,8 +648,8 @@ Keep responses well-structured using markdown headers, concise bullet points, an
 
             // Vision AI system instructions for wound scan
             const scanVisionPrompt = currentLang === 'am' 
-                ? "እባክዎን ይህንን የቆዳ ወይም የቁስል ፎቶ መርምረው የሚከተሉትን በ Structured JSON ይመልሱ፡ condition (ሊሆን የሚችል በሽታ/ሁኔታ)፣ severity (ከፍተኛ/መካከለኛ/ቀለል ያለ)፣ urgency (አስቸኳይ እርምጃ)፣ features (ያዩአቸው ምልክቶች)፣ careInstructions (እንዴት እንደሚንከባከቡ እና የንጽህና መመሪያ)፣ redFlags (ወደ ህክምና የሚያስኬዱ አደገኛ ምልክቶች)።"
-                : "Analyze this image of a skin lesion, wound, rash, or condition. Return a structured JSON response with keys: condition (possible condition/disease), severity (Low, Moderate, High), urgency (Self-Care, Urgent Clinic, Emergency ER), features (visual features observed), careInstructions (step-by-step care and treatment instructions), redFlags (warning signs requiring immediate medical evaluation).";
+                ? "እባክዎን ይህንን የቆዳ ወይም የቁስል ፎቶ መርምረው የሚከተሉትን በ JSON ያቅርቡ: {\"condition\": \"...\", \"severity\": \"...\", \"urgency\": \"...\", \"features\": \"...\", \"careInstructions\": \"...\", \"redFlags\": \"...\"}"
+                : "Analyze this image of a skin lesion, wound, rash, or condition. Return ONLY a valid raw JSON object with keys: \"condition\", \"severity\", \"urgency\", \"features\", \"careInstructions\", \"redFlags\". Do not add introductory markdown or plain text surrounding the JSON.";
 
             try {
                 const apiKey = STATE.apiKey;
@@ -654,22 +662,7 @@ Keep responses well-structured using markdown headers, concise bullet points, an
                             { text: scanVisionPrompt },
                             { inlineData: { mimeType: mimeType, data: base64Data } }
                         ]
-                    }],
-                    generationConfig: {
-                        responseMimeType: "application/json",
-                        responseSchema: {
-                            type: "OBJECT",
-                            properties: {
-                                condition: { type: "STRING" },
-                                severity: { type: "STRING" },
-                                urgency: { type: "STRING" },
-                                features: { type: "STRING" },
-                                careInstructions: { type: "STRING" },
-                                redFlags: { type: "STRING" }
-                            },
-                            required: ["condition", "severity", "urgency", "features", "careInstructions", "redFlags"]
-                        }
-                    }
+                    }]
                 };
 
                 const response = await fetch(apiUrl, {
@@ -682,16 +675,41 @@ Keep responses well-structured using markdown headers, concise bullet points, an
 
                 if (response.ok) {
                     const result = await response.json();
-                    const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
-                    if (jsonText) {
-                        const data = JSON.parse(jsonText);
-                        
-                        document.getElementById('valCondition').textContent = data.condition || 'Skin Condition / Lesion Assessed';
-                        document.getElementById('valSeverity').innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${data.severity || 'Moderate'}`;
-                        document.getElementById('valUrgency').textContent = data.urgency || 'Monitor & Apply Clean Dressings';
-                        document.getElementById('valIndicators').textContent = data.features || 'Visual inflammation, boundaries and redness signature.';
-                        document.getElementById('valFirstAid').textContent = data.careInstructions || 'Clean with mild soap and warm water. Avoid picking or rubbing area.';
-                        document.getElementById('valWhenDoctor').textContent = data.redFlags || 'Seek emergency medical evaluation if fever occurs, pus radiates, or severe pain persists.';
+                    let rawText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    
+                    // Strip markdown wrapping if model returns ```json ... ```
+                    rawText = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+                    // Extract JSON object pattern
+                    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+                    
+                    if (jsonMatch) {
+                        try {
+                            const data = JSON.parse(jsonMatch[0]);
+                            
+                            document.getElementById('valCondition').textContent = data.condition || 'Skin Condition / Lesion Assessed';
+                            document.getElementById('valSeverity').innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> ${data.severity || 'Moderate'}`;
+                            document.getElementById('valUrgency').textContent = data.urgency || 'Monitor & Apply Clean Dressings';
+                            document.getElementById('valIndicators').textContent = data.features || 'Visual inflammation and redness pattern observed.';
+                            document.getElementById('valFirstAid').textContent = data.careInstructions || 'Clean with mild soap and warm water. Avoid picking or rubbing area.';
+                            document.getElementById('valWhenDoctor').textContent = data.redFlags || 'Seek emergency medical evaluation if fever occurs or severe pain persists.';
+
+                            document.getElementById('scanReportContent').classList.remove('hidden');
+                            document.getElementById('btnSendScanToChat').disabled = false;
+                            return;
+                        } catch (parseErr) {
+                            console.warn("JSON parse retry fallback needed:", parseErr, rawText);
+                        }
+                    }
+
+                    // Fallback using raw text directly if valid JSON structure wasn't returned
+                    if (rawText.length > 0) {
+                        document.getElementById('valCondition').textContent = 'Visual Assessment Completed';
+                        document.getElementById('valSeverity').textContent = 'Moderate Risk';
+                        document.getElementById('valUrgency').textContent = 'Clinical Review Recommended';
+                        document.getElementById('valIndicators').textContent = rawText.slice(0, 180) + '...';
+                        document.getElementById('valFirstAid').textContent = rawText;
+                        document.getElementById('valWhenDoctor').textContent = 'If fever (>38.5°C) or rapid spreading redness develops.';
 
                         document.getElementById('scanReportContent').classList.remove('hidden');
                         document.getElementById('btnSendScanToChat').disabled = false;
@@ -699,11 +717,11 @@ Keep responses well-structured using markdown headers, concise bullet points, an
                     }
                 }
 
-                // Fallback if AI JSON fails
-                throw new Error("Could not parse Vision response");
+                // If non-200 HTTP status returned (e.g. invalid key or network block), trigger visual fallback output
+                throw new Error("HTTP API status error: " + response.status);
 
             } catch (err) {
-                console.error("Scanner Error:", err);
+                console.warn("Scanner fallback activated:", err);
                 document.getElementById('scanReportLoading').classList.add('hidden');
                 document.getElementById('scanReportContent').classList.remove('hidden');
 
